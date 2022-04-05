@@ -3,34 +3,57 @@ const Board = require('../models/board');
 const Task = require('../models/task');
 const mongoose = require('mongoose')
 const { v4: uuidv4 } = require('uuid');
+const Column = require('../models/column');
 
 
-//ADD columns to sprint
 const addSprint = async (req, res) => {
+  const session = await Board.startSession()
+  session.startTransaction();
+
   try {
     const lastSprint = await Board.findOne({roomId: req.body.roomId, id: {$ne: "backlog"}}, {}, {sort: {createdAt: -1}})
     const startDate = new Date(lastSprint.finish)
     const finishDate = new Date(lastSprint.finish)
     finishDate.setDate(finishDate.getDate() + 14)
 
+    const sprintId = uuidv4()
+    const columns = [{
+      id: "to-do",
+      roomId: req.body.roomId,
+      boardId: sprintId,
+      name: "Por hacer",
+      isInitial: true,
+      isDoen: false
+    }, {
+      id: "done",
+      roomId: req.body.roomId,
+      boardId: sprintId,
+      name: "Listo",
+      isInitial: false,
+      isDone: true
+    }]
+
     const sprint = new Board({
       roomId: req.body.roomId,
-      id: uuidv4(),
+      id: sprintId,
       columns: [],
       tasks: [],
       start: startDate,
       finish: finishDate
     })
 
+    await Column.insertMany(columns)
     await sprint.save()
-    return res.status(200).send()
+    await session.commitTransaction()
+
+    return res.status(200).send({sprintId})
   } catch (err) {
     console.log("err", err)
+    await session.abortTransaction()
+    await session.endSession()
     return res.status(500).send({ error: 'Internal Server Error' })
   }
 }
-
-//ADD task to 
 
 const addTask = async (req, res) => {
   const session = await Board.startSession()

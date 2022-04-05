@@ -3,10 +3,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const columnsSchema = new Schema({
-  id: {
-    type: String,
-    unique: true
-  },
+  id: String,
   roomId: String,
   boardId: String,
   name: String,

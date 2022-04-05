@@ -154,15 +154,17 @@ describe("Task Manager tests", () => {
 
   describe('Add sprint method', () => {
     test('should return 200', async () => {
-      await request(app)
+      const result = await request(app)
         .post('/api/task-manager.sprint')
         .send({roomId: "default"})
         .expect(200)
 
       const lastSprint = await Board.findOne({roomId: "default", id: {$ne: "backlog"}}, {}, {sort: {createdAt: -1}})
+      const count = await Column.countDocuments({boardId: result.body.sprintId })
 
       expect(lastSprint.start).toEqual(new Date("2022-04-15T22:00:00.000Z"))
       expect(lastSprint.finish).toEqual(new Date("2022-04-29T22:00:00.000Z"))
+      expect(count).toBe(2)
     })
 
     test('should return 500', async () => {
