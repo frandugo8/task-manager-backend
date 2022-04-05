@@ -22,7 +22,8 @@ const boardSchema = new Schema({
   versionKey: false
 }).index({
   roomId: 1,
-  id: 1
+  id: 1,
+  createdAt: -1
 })
 
 const Board = mongoose.model('Boards', boardSchema)

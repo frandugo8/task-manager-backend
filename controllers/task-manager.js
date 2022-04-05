@@ -2,6 +2,32 @@
 const Board = require('../models/board');
 const Task = require('../models/task');
 const mongoose = require('mongoose')
+const { v4: uuidv4 } = require('uuid');
+
+const addSprint = async (req, res) => {
+  try {
+    const lastSprint = await Board.findOne({roomId: req.body.roomId, id: {$ne: "backlog"}}, {}, {sort: {createdAt: -1}})
+    const startDate = new Date(lastSprint.finish)
+    const finishDate = new Date(lastSprint.finish)
+    finishDate.setDate(finishDate.getDate() + 14)
+
+    const sprint = new Board({
+      roomId: req.body.roomId,
+      id: uuidv4(),
+      columns: [],
+      tasks: [],
+      start: startDate,
+      finish: finishDate
+    })
+
+    sprint.save()
+  } catch (err) {
+    console.log("err", err)
+    return res.status(500).send({ error: 'Internal Server Error' })
+  }
+
+  return res.status(200).send()
+}
 
 const getBoards = async (req, res) => {
   try {
@@ -142,6 +168,7 @@ const editTaskPriority = async (req, res) => {
 }
 
 module.exports = {
+  addSprint,
   getBoards,
   editColumnPriority,
   editTaskPriority

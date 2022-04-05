@@ -8,9 +8,10 @@ const Column = require('../models/column');
 
 
 describe("Task Manager tests", () => {
-
   beforeEach(async () => {
-    const date = new Date()
+    const date = new Date('April 02, 2022 00:00:00')
+    const startDate = new Date(date)
+    const finishDate = new Date(date.setDate(date.getDate() + 14))
     date.setHours(0, 0, 0, 0)
 
     const sprint = new Board({
@@ -18,8 +19,10 @@ describe("Task Manager tests", () => {
       id: "sprint1",
       columns: ["to-do", "in-progress", "in-revision", "done"],
       tasks: ["task1", "task2", "task3", "task4"],
-      start: new Date(date),
-      finish: new Date(date.setDate(date.getDate() + 14))
+      start: new Date(startDate),
+      finish: new Date(finishDate),
+      createdAt: new Date(startDate),
+      editedAt: new Date(startDate)
     })
 
     const backlog = new Board({
@@ -109,6 +112,29 @@ describe("Task Manager tests", () => {
   afterEach(() => {    
     jest.restoreAllMocks();
   });
+
+  describe('Add sprint method', () => {
+    test('should return 200', async () => {
+      await request(app)
+        .post('/api/task-manager.sprint')
+        .send({roomId: "default"})
+        .expect(200)
+
+      const lastSprint = await Board.findOne({roomId: "default", id: {$ne: "backlog"}}, {}, {sort: {createdAt: -1}})
+
+      expect(lastSprint.start).toEqual(new Date("2022-04-15T22:00:00.000Z"))
+      expect(lastSprint.finish).toEqual(new Date("2022-04-29T22:00:00.000Z"))
+    })
+
+    test('should return 500', async () => {
+      jest.spyOn(Board, 'findOne').mockRejectedValue("Error")
+
+      await request(app)
+        .post('/api/task-manager.sprint')
+        .send({roomId: "default"})
+        .expect(500)
+    })
+  })
   
   describe('Get boards method', () => {
     test('should return 200', async () => {
@@ -130,8 +156,7 @@ describe("Task Manager tests", () => {
 
   describe('Edit column priority method', () => {
     test('should return 200', async () => {
-      let board = await Board.findOne({ roomId: 'default', boardId: 'sprint1' })
-      console.log("board!!!!!!!", board)
+      let board = await Board.findOne({ roomId: 'default', id: 'sprint1' })
       expect(board.columns).toEqual(["to-do", "in-progress", "in-revision", "done"])
 
       await request(app)
@@ -140,7 +165,7 @@ describe("Task Manager tests", () => {
         .send({ source: { columnId: 'to-do' }, destination: { index: 1 }})
         .expect(200)
 
-      board = await Board.findOne({ roomId: 'default', boardId: 'sprint1' })
+      board = await Board.findOne({ roomId: 'default', id: 'sprint1' })
       expect(board.columns).toEqual(["in-progress", "to-do", "in-revision", "done"])
     })
 
