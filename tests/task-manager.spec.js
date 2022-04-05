@@ -4,6 +4,7 @@ const app = require('../index')
 const Task = require('../models/task');
 const Board = require('../models/board');
 const Column = require('../models/column');
+const { findOne } = require('../models/board');
 
 
 
@@ -112,6 +113,44 @@ describe("Task Manager tests", () => {
   afterEach(() => {    
     jest.restoreAllMocks();
   });
+
+  describe('Add task method', () => {
+    test('should return 200', async () => {
+      const response = await request(app)
+        .post('/api/task-manager.task')
+        .query({roomId: "default", boardId: "sprint1"})
+        .send({task: "task 10"})
+        .expect(200)
+
+      const count = await Task.countDocuments({title: "task 10"})
+      const board = await Board.findOne({roomId: "default", id: "sprint1"})
+
+      expect(board.tasks).toEqual(["task1", "task2", "task3", "task4", response.body.taskId])
+      expect(count).toBe(1)
+    })
+
+    test('should return 400', async () => {
+      jest.spyOn(Board, 'updateOne').mockResolvedValue({
+        modifiedCount: 0
+      })
+  
+      await request(app)
+        .post('/api/task-manager.task')
+        .query({roomId: "default", boardId: "sprint1"})
+        .send({task: "task 10"})
+        .expect(400)
+    })
+
+    test('should return 500', async () => {
+      jest.spyOn(Board, 'updateOne').mockRejectedValue("Error")
+
+      await request(app)
+        .post('/api/task-manager.task')
+        .query({roomId: "default", boardId: "sprint1"})
+        .send({task: "task 10"})
+        .expect(500)
+    })
+  })
 
   describe('Add sprint method', () => {
     test('should return 200', async () => {

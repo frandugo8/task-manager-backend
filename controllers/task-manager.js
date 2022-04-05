@@ -4,6 +4,8 @@ const Task = require('../models/task');
 const mongoose = require('mongoose')
 const { v4: uuidv4 } = require('uuid');
 
+
+//ADD columns to sprint
 const addSprint = async (req, res) => {
   try {
     const lastSprint = await Board.findOne({roomId: req.body.roomId, id: {$ne: "backlog"}}, {}, {sort: {createdAt: -1}})
@@ -20,13 +22,46 @@ const addSprint = async (req, res) => {
       finish: finishDate
     })
 
-    sprint.save()
+    await sprint.save()
+    return res.status(200).send()
   } catch (err) {
     console.log("err", err)
     return res.status(500).send({ error: 'Internal Server Error' })
   }
+}
 
-  return res.status(200).send()
+//ADD task to 
+
+const addTask = async (req, res) => {
+  const session = await Board.startSession()
+  session.startTransaction();
+
+  try {
+    const taskId = uuidv4()
+    const task = new Task({
+      id: taskId,
+      title: req.body.task,
+      status: "to-do"
+    })
+    
+    const update = await Board.updateOne({roomId: req.query.roomId, id: req.query.boardId}, {$push: {tasks: taskId}}, {session})
+    await task.save({session})
+
+    if (update.modifiedCount === 0) {
+      await session.abortTransaction()
+      await session.endSession()
+      return res.status(400).send({msg: "Invalid update"})
+    } else {
+      await session.commitTransaction()
+    }
+  
+    return res.status(200).send({taskId})
+  } catch (err) {
+    console.log("err", err)
+    await session.abortTransaction()
+    await session.endSession()
+    return res.status(500).send({ error: 'Internal Server Error' })
+  }
 }
 
 const getBoards = async (req, res) => {
@@ -169,6 +204,7 @@ const editTaskPriority = async (req, res) => {
 
 module.exports = {
   addSprint,
+  addTask,
   getBoards,
   editColumnPriority,
   editTaskPriority

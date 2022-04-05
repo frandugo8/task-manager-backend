@@ -6,6 +6,7 @@ const router = express.Router()
 router.get('/task-manager.boards', taskManagerCtrl.getBoards)
 
 router.post('/task-manager.sprint', taskManagerCtrl.addSprint)
+router.post('/task-manager.task', taskManagerCtrl.addTask)
 
 router.put('/task-manager.column-priority', taskManagerCtrl.editColumnPriority)
 router.put('/task-manager.task-priority', taskManagerCtrl.editTaskPriority)
