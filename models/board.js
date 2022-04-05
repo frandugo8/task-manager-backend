@@ -2,7 +2,7 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema;
 
-const tableSchema = new Schema({
+const boardSchema = new Schema({
   roomId: String,
   id: String,
   columns: [String],
@@ -25,6 +25,6 @@ const tableSchema = new Schema({
   id: 1
 })
 
-const Table = mongoose.model('Tables', tableSchema)
+const Board = mongoose.model('Boards', boardSchema)
 
-module.exports = Table
+module.exports = Board

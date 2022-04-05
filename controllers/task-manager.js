@@ -1,60 +1,148 @@
 
-const Table = require('../models/table');
-const Column = require('../models/column');
+const Board = require('../models/board');
 const Task = require('../models/task');
+const mongoose = require('mongoose')
 
 const getBoards = async (req, res) => {
   try {
-    const tables = await Table.aggregate([{
+    const boards = await Board.aggregate([{
       $match: {roomId: req.query.roomId}
     },
     {
       $lookup: {
         from: "tasks",
-        let: { id: "$roomId" },
+        let: { roomId: "$roomId", tasks: "$tasks" },
         pipeline: [
-          { $match: { "$expr": { "$eq": [ "$roomId", "$$id" ]}}},
+          { $match: { "$expr": { $and: [{"$eq": [ "$roomId", "$$roomId" ]}, {"$in": ["$id", "$$tasks"]}]}}},
+          { $addFields: {"sort": { "$indexOfArray": [ "$$tasks", "$id" ]}}},
+          { $sort: { "sort": 1 } },
+          { $addFields: { "sort": "$$REMOVE" }},
           { $project: { "_id": 0, "id": 1, "title": 1, "status": 1 } }
         ],
         as: "tasks"
     }},
     {
-      $project: {_id: 0, id: 1, tasks: 1, start: 1, finish: 1}
-    }])
-
-    return res.status(200).send(tables)
-  } catch (err) {
-    return res.status(500).send({ error: 'Internal Server Error' })
-  }
-}
-
-const getBoard = async (req, res) => {
-  try {
-    const table = await Table.aggregate([{
-      $match: { roomId: req.query.roomId }
-    },
-    {
       $lookup: {
         from: "columns",
-        let: { id: "$id" },
+        let: { roomId: "$roomId", columns: "$columns" },
         pipeline: [
-          { $match: { "$expr": { "$eq": [ "$tableId", "$$id" ]}}},
-          { $project: { "_id": 0, "id": 1, "name": 1, "isInitial": 1, "isDone": 1} }
+          { $match: { "$expr": { $and: [{"$eq": [ "$roomId", "$$roomId" ]}, {"$in": [ "$id", "$$columns" ]}]}}},
+          { $addFields: {"sort": { "$indexOfArray": [ "$$columns", "$id" ]}}},
+          { $sort: { "sort": 1 } },
+          { $addFields: { "sort": "$$REMOVE" }},
+          { $project: { "_id": 0, "id": 1, "name": 1, "isInitial": 1, "isDone": 1 } }
         ],
         as: "columns"
     }},
     {
-      $project: {_id: 0, id: 1, columns: 1, start: 1, finish: 1}
+      $project: {_id: 0, id: 1, columns: 1, tasks: 1, start: 1, finish: 1}
     }])
 
-    return res.status(200).send(table)
+    return res.status(200).send(boards)
   } catch (err) {
     return res.status(500).send({ error: 'Internal Server Error' })
   }
 }
 
+const editColumnPriority = async (req, res) => {
+  const [roomId, boardId, source, destination] = [req.query.roomId, req.query.boardId, req.body.source, req.body.destination]
+  const session = await Board.startSession()
+  session.startTransaction();
+
+  try {
+    const pull = await Board.updateOne({
+      roomId,
+      id: boardId
+    }, {
+      $pull: {"columns": source.columnId}
+    }, { session })
+
+    const push = await Board.updateOne({
+      roomId,
+      id: boardId
+    }, {
+      $push: {"columns": {$each: [source.columnId], $position: destination.index}}
+    }, { session })
+
+    if (pull.modifiedCount === 0 || push.modifiedCount === 0) {
+      await session.abortTransaction()
+      await session.endSession()
+      return res.status(400).send({msg: "Invalid update"})
+    } else {
+      await session.commitTransaction()
+    }
+
+    await session.endSession()
+
+    return res.status(200).send({msg: "Column position updated successfully"})
+  } catch (err) {
+    await session.abortTransaction()
+    await session.endSession()
+    console.log("err", err)
+    return res.status(500).send({ error: 'Internal Server Error' })
+  }
+}
+
+const editTaskPriority = async (req, res) => {
+  const session = await mongoose.startSession()
+  session.startTransaction();
+
+  const [roomId, boardId, source, destination] = [req.query.roomId, req.query.boardId, req.body.source,
+    req.body.destination]
+
+  try {
+    const adjacentIndex = await Board.aggregate([
+      { $match: {roomId, id: destination.boardId} },
+      { $project: { "result": {$indexOfArray: [ "$tasks", destination.adjacentId]}}}
+    ])
+
+    const pull = await Board.updateOne({
+      roomId,
+      id: source.boardId
+    }, {
+      $pull: {"tasks": source.taskId}
+    }, { session })
+
+    const push = await Board.updateOne({
+      roomId,
+      id: destination.boardId
+    }, {
+      $push: {"tasks": {
+        $each: [source.taskId],
+        $position: boardId === undefined || destination.adjacentId === undefined? destination.index : adjacentIndex[0].result
+      }}
+    }, { session })
+
+    const task = await Task.updateOne({
+      roomId,
+      id: source.taskId
+    }, {
+      $set: {
+        status: destination.columnId
+      }
+    }, { session })
+
+    if (pull.modifiedCount === 0 || push.modifiedCount === 0 || task.modifiedCount === 0) {
+      await session.abortTransaction()
+      await session.endSession()
+      return res.status(400).send({msg: "Invalid update"})
+    } else {
+      await session.commitTransaction()
+    }
+
+    await session.endSession()
+
+    return res.status(200).send({msg: "Task position updated successfully"})
+  } catch (err) {
+    await session.abortTransaction()
+    await session.endSession()
+    console.log("err", err)
+    return res.status(500).send({ error: 'Internal Server Error' })
+  }
+}
 
 module.exports = {
   getBoards,
-  getBoard
+  editColumnPriority,
+  editTaskPriority
 }

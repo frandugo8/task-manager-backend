@@ -8,7 +8,7 @@ const columnsSchema = new Schema({
     unique: true
   },
   roomId: String,
-  tableId: String,
+  boardId: String,
   name: String,
   isInitial: Boolean,
   isDone: Boolean
@@ -17,7 +17,7 @@ const columnsSchema = new Schema({
   versionKey: false
 }).index({
   roomId: 1,
-  tableId: 1
+  boardId: 1
 })
 
 const Column = mongoose.model('Columns', columnsSchema)

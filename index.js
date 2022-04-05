@@ -5,7 +5,7 @@ const mongoose = require('mongoose')
 const taskManager = require('./routes/task-manager')
 const app = express()
 
-mongoose.connect(process.env.LOCAL_MONGODB_URL, {
+mongoose.connect(process.env.PRODUCTION_MONGODB_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).catch((e) => {
