@@ -62,6 +62,7 @@ const addTask = async (req, res) => {
   try {
     const taskId = uuidv4()
     const task = new Task({
+      roomId: req.query.roomId,
       id: taskId,
       title: req.body.task,
       status: "to-do"
