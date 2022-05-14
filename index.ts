@@ -8,7 +8,7 @@ const app = express()
 mongoose.connect(process.env.PRODUCTION_MONGODB_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).catch((e) => {
+}).catch((e: any) => {
   console.log('There has been an error', e)
 })
 

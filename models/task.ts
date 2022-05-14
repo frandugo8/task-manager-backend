@@ -1,6 +1,12 @@
 
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema;
+import mongoose, { Schema, model } from 'mongoose';
+
+export interface Task extends mongoose.Document {
+  id: string
+  roomId: string
+  title: string
+  status: "to-do" | "in-progress" | "in-revision" |  "done"
+};
 
 const taskSchema = new Schema({
   id: {
@@ -27,6 +33,4 @@ const taskSchema = new Schema({
   roomId: 1
 })
 
-const Task = mongoose.model('Tasks', taskSchema)
-
-module.exports = Task
+export default model<Task>('Tasks', taskSchema)

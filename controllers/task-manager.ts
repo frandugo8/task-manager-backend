@@ -4,9 +4,10 @@ const Task = require('../models/task');
 const mongoose = require('mongoose')
 const { v4: uuidv4 } = require('uuid');
 const Column = require('../models/column');
+import { Request, Response } from 'express';
 
 
-const addSprint = async (req, res) => {
+const addSprint = async (req: Request, res: Response) => {
   const session = await Board.startSession()
   session.startTransaction();
 
@@ -55,7 +56,7 @@ const addSprint = async (req, res) => {
   }
 }
 
-const addTask = async (req, res) => {
+const addTask = async (req: Request, res: Response) => {
   const session = await Board.startSession()
   session.startTransaction();
 
@@ -88,7 +89,7 @@ const addTask = async (req, res) => {
   }
 }
 
-const getBoards = async (req, res) => {
+const getBoards = async (req: Request, res: Response) => {
   try {
     const boards = await Board.aggregate([{
       $match: {roomId: req.query.roomId}
@@ -129,7 +130,7 @@ const getBoards = async (req, res) => {
   }
 }
 
-const editColumnPriority = async (req, res) => {
+const editColumnPriority = async (req: Request, res: Response) => {
   const [roomId, boardId, source, destination] = [req.query.roomId, req.query.boardId, req.body.source, req.body.destination]
   const session = await Board.startSession()
   session.startTransaction();
@@ -168,7 +169,7 @@ const editColumnPriority = async (req, res) => {
   }
 }
 
-const editTaskPriority = async (req, res) => {
+const editTaskPriority = async (req: Request, res: Response) => {
   const session = await mongoose.startSession()
   session.startTransaction();
 

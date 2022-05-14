@@ -1,6 +1,14 @@
+import mongoose, { Schema, model } from 'mongoose';
 
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema;
+export interface Board extends mongoose.Document {
+  roomId: string,
+  id: string,
+  columns: Array<string>,
+  tasks: Array<string>,
+  start: Date,
+  finish: Date,
+  isBacklog: boolean
+};
 
 const boardSchema = new Schema({
   roomId: String,
@@ -26,6 +34,4 @@ const boardSchema = new Schema({
   createdAt: -1
 })
 
-const Board = mongoose.model('Boards', boardSchema)
-
-module.exports = Board
+export default model<Board>('Boards', boardSchema)
